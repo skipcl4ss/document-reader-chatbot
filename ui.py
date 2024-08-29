@@ -1,4 +1,3 @@
-from pprint import pprint
 import os
 import streamlit as st
 from pypdf import PdfReader
@@ -21,36 +20,35 @@ def main():
         "What is the extension of the file in question?",
         ("pdf", "md", "txt"),
     )
-
     file = st.file_uploader("Upload your file", type = option)
 
     if file is not None:
-        pdf = PdfReader(file)
         text = ""
-        for page in pdf.pages:
-            text += page.extract_text()
+        match option:
+            case "pdf":
+                with st.spinner("Processing file..."):
+                    pdf = PdfReader(file)
+                    for page in pdf.pages:
+                        text += page.extract_text()
 
+            case "txt" | "md":
+                text = file.getvalue().decode("utf-8")
 
-        # query = st.text_input("Ask the AI a question about your file", "What is the premise of the story?")
         query = st.text_input("Ask the AI a question about your file", placeholder = "What is the premise of the story?")
         confirm = st.button("Confirm")
+
         if confirm:
             cancel = st.button('Cancel')
             if cancel:
                 st.stop()
-
             if query and not cancel:
-                db = processText(text)
-                st.markdown("done")
-                results = db.similarity_search_with_score(query)
-                # print(results)
-                # print()
-                pprint(results)
-
-                response = analyzeResults(query, results)
+                # db = processText(text)
+                with st.spinner("Understanding the file content, this may take a few minutes..."):
+                    db = processText(text)
+                    results = db.similarity_search_with_score(query)
+                    response = analyzeResults(query, results)
                 st.header("AI response")
                 st.markdown(response)
-
 
 def processText(text):
     # Split the text into chunks using Langchain's RecursiveCharacterTextSplitter
@@ -59,13 +57,9 @@ def processText(text):
         chunk_overlap = 50,
     )
     chunks = textSplitter.split_text(text)
-    print(f"Split {len(text)} documents into {len(chunks)} chunks.")
-
-    st.write("Understanding the file content, this may take a few minutes...")
 
     # Convert the chunks of text into embeddings to form a database
     embeddings = HuggingFaceEmbeddings()
-    st.write("Almost ready...")
     db = Chroma.from_texts(chunks, embeddings)
 
     return db
