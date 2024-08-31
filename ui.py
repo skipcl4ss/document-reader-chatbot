@@ -48,12 +48,12 @@ def main():
                     results = db.similarity_search_with_score(query)
                     response = analyzeResults(query, results)
                 st.header("AI response")
-                st.markdown(response)
+                st.markdown(response.content)
 
 def processText(text):
     # Split the text into chunks using Langchain's RecursiveCharacterTextSplitter
     textSplitter = RecursiveCharacterTextSplitter(
-        chunk_size = 1000,
+        chunk_size = 1024,
         chunk_overlap = 50,
     )
     chunks = textSplitter.split_text(text)
@@ -81,34 +81,5 @@ def analyzeResults(query, results):
     response = llm.invoke(prompt)
 
     return response
-
-# TODO: Understand this function fully
-def calculateChunkIDs(chunks):
-
-    # This will create IDs like "data/monopoly.pdf:6:2"
-    # Page Source : Page Number : Chunk Index
-
-    lastPageID = None
-    currentChunkIndex = 0
-
-    for chunk in chunks:
-        source = chunk.metadata.get("source")
-        page = chunk.metadata.get("page")
-        currentPageID = f"{source}:{page}"
-
-        # If the page ID is the same as the last one, increment the index.
-        if currentPageID == lastPageID:
-            currentChunkIndex += 1
-        else:
-            currentChunkIndex = 0
-
-        # Calculate the chunk ID.
-        chunkID = f"{currentPageID}:{currentChunkIndex}"
-        lastPageID = currentPageID
-
-        # Add it to the page meta-data.
-        chunk.metadata["id"] = chunkID
-
-    return chunks
 
 main()
