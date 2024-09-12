@@ -7,8 +7,8 @@ from langchain_chroma import Chroma
 from langchain_groq import ChatGroq
 
 # Read the API key from a file
-with open("C:\\Programming\\doc reader chatbot\\groq.txt", "r") as apiKeyfile:
-    apiKey = apiKeyfile.read().strip()
+with open("C:\\Programming\\doc reader chatbot\\groq.txt", "r", encoding="utf-8") as apiKeyFile:
+    apiKey = apiKeyFile.read().strip()
 # Set the API key as an environment variable
 os.environ["GROQ_API_KEY"] = apiKey
 
@@ -22,7 +22,7 @@ def main():
     )
     file = st.file_uploader("Upload your file", type = option)
 
-    if file is not None:
+    if file:
         text = ""
         match option:
             case "pdf":
@@ -41,8 +41,7 @@ def main():
             cancel = st.button('Cancel')
             if cancel:
                 st.stop()
-            if query and not cancel:
-                # db = processText(text)
+            elif query:
                 with st.spinner("Understanding the file content, this may take a few minutes..."):
                     db = processText(text)
                     results = db.similarity_search_with_score(query)
@@ -64,7 +63,6 @@ def processText(text):
 
     return db
 
-# TODO: Understand this function fully
 def analyzeResults(query, results):
     prompt_template = """
     Answer the query based only on the given context:
