@@ -1,4 +1,5 @@
 import os
+import time
 import streamlit as st
 from pypdf import PdfReader
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -6,11 +7,25 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_groq import ChatGroq
 
+# TODO: write relevant menu items
+st.set_page_config(
+    page_title = "Document Assistant",
+    page_icon = "📄",
+    menu_items = {
+        'Get Help': 'https://www.extremelycoolapp.com/help',
+        'Report a bug': "https://www.extremelycoolapp.com/bug",
+        'About': "# This is a header. This is an *extremely* cool app!"
+    }
+)
+
 # Read the API key from a file
 with open("C:\\Programming\\doc reader chatbot\\groq.txt", "r", encoding="utf-8") as apiKeyFile:
     apiKey = apiKeyFile.read().strip()
 # Set the API key as an environment variable
 os.environ["GROQ_API_KEY"] = apiKey
+
+# TODO: read the following to try fixing the spinner issue
+# https://github.com/streamlit/streamlit/issues/3838
 
 def main():
     st.title("Welcome To Document Assistant")
@@ -37,6 +52,7 @@ def main():
         query = st.text_input("Ask the AI a question about your file", placeholder = "What is the premise of the story?")
         confirm = st.button("Confirm")
 
+        startTime = time.time()
         if confirm:
             cancel = st.button('Cancel')
             if cancel:
@@ -44,10 +60,13 @@ def main():
             elif query:
                 with st.spinner("Understanding the file content, this may take a few minutes..."):
                     db = processText(text)
-                    results = db.similarity_search_with_score(query)
+                    retriever = db.as_retriever(search_type = "similarity")
+                    results = retriever.invoke("query")
                     response = analyzeResults(query, results)
                 st.header("AI response")
                 st.markdown(response.content)
+                endTime = time.time()
+                st.markdown("Time taken: " + str(round(endTime - startTime, 2)) + " seconds")
 
 def processText(text):
     # Split the text into chunks using Langchain's RecursiveCharacterTextSplitter
@@ -71,7 +90,7 @@ def analyzeResults(query, results):
     Answer the query based on the above context: {query}
     """
 
-    context = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+    context = "\n\n---\n\n".join([doc.page_content for doc in results])
 
     prompt = prompt_template.format(context = context, query = query)
 
